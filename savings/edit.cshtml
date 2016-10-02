@@ -1,0 +1,119 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "Edit Expense";
+
+    var db = Database.Open("Users");
+    var infoId = Request.QueryString["Id"].AsInt(); //passed from main
+
+    //checks if you are messing with data that isn't yours
+    var error = false;
+    var userId = WebSecurity.CurrentUserId; //your user id
+    var selectOwnerCommand = "SELECT UserId FROM Savings WHERE Id =" + infoId;
+    var ownerId = db.QueryValue(selectOwnerCommand);
+    if (ownerId != userId) {
+        error = true;
+    }
+    
+    //variables to edit
+    var selectGoalsId = "SELECT GoalsId FROM Savings WHERE Id = @0";
+    var selectName = "SELECT descriptName FROM Savings WHERE Id = @0";
+    var selectAmount = "SELECT Amount FROM Savings WHERE Id = @0";
+    var selectDate = "SELECT Date FROM Savings WHERE Id = @0";
+    var selectNotes = "SELECT Notes FROM Savings WHERE Id = @0";
+    int GoalsId = db.QueryValue(selectGoalsId, infoId);
+    var Name = db.QueryValue(selectName, infoId);
+    decimal Amount = db.QueryValue(selectAmount, infoId);
+    var Date = db.QueryValue(selectDate, infoId);
+    var Notes = db.QueryValue(selectNotes, infoId);
+
+    //possible error strings
+    var nameErr = "";
+    var dateErr = "";
+    var amountErr = "";
+    var success = "";
+
+    //existant goals
+    var garden = db.Query(@"SELECT Id, descriptName, Plant FROM Goals WHERE UserId = @0", userId).ToList();
+
+    //edit function
+    if (IsPost) {
+        if (Validation.IsValid()){
+            GoalsId = Request.Form["goal"].AsInt();
+            Name = Request.Form["name"];
+            Amount = Request.Form["amount"].AsDecimal();
+            Date = Request.Form["date"];
+            Notes = Request.Form["notes"];
+
+            if (Name == ""){
+                nameErr = "a name is required for your expense";
+            } else if (Date == ""){
+                dateErr = "a date of spending is required";
+            } else if (Amount == 0){
+                amountErr = "an amount spent is needed to be logged";
+            } else if (GoalsId == 0){
+            } else {
+                var updateCommand = "UPDATE Savings SET GoalsId=@0, descriptName=@1, Amount=@2, Date=@3, Notes=@4 WHERE Id=@5";
+                db.Execute(updateCommand, GoalsId, Name, Amount, Date, Notes, infoId);
+
+                Response.Redirect("/savings/view");
+                success = "success!";
+            }
+        }
+    }
+}
+
+
+@if (WebSecurity.IsAuthenticated) {
+    if (infoId != 0) {
+        if (error == false) {   
+            <h2>edit for @Name</h2>
+
+                    <form method="post">
+                        <div class="form-group">
+                            <!--name box-->
+                            <label for="Name">name</label><br/>
+                            <input type="text" id="name" name="name" maxlength="50" value="@Name" placeholder="name of saving" class="form-control" /> 
+                            <i>@nameErr</i><br />
+
+                            <!--goal to save to-->
+                            <label for="goal">save to goal</label>
+                            <select class="form-control" id="goal" name="goal">
+                                @foreach (var item in garden){
+                                    <option value="@item.Id" @(infoId == item.Id   ? "selected" : "") >@item.descriptName</option>
+                                }
+                            </select> <br />
+
+                            <!--amount box-->
+                            <label for="amount">amount</label><br/>
+                            <input type="text" id="amount" name="amount" value="@Amount" class="form-control" /> 
+                            <i>@amountErr</i> <br />
+
+                            <!--date box-->
+                            <label for="date">date</label> <br />
+                            <input type="date" id="date" name="date" value="@Date" class="form-control" /> 
+                            <i>@dateErr</i><br />
+
+                            <!--type box-->
+                            <label for="notes">notes</label><br/>
+                            <textarea id="notes" name="notes" rows="3" maxlength="500" class="form-control" placeholder="your notes and thoughts">@Notes</textarea> 
+                            @success 
+                            <br />
+
+                            <!--Submit-->
+                            <input type="submit" value="submit" class="btn btn-info"/>
+                        </div>
+                    </form>
+        }
+    } else {
+        error = true;
+    }
+
+    //if you are in territory not your own
+    if (error == true) {
+        <h2>bzz! error!</h2>
+        <p>l00ks like y0u tr1ed t0 access s0mething that e1ther 1sn't y0urs 0r d0esn't ex1st. </p>
+    }
+} else {
+<p>sorry, you need to <a href="~/Account/login">log in</a> or 
+    <a href="~/Account/register">register</a> to use our services.</p>
+}

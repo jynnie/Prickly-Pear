@@ -1,0 +1,107 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "Settings";
+
+    //user info
+    var userId = WebSecurity.CurrentUserId;
+    var userName = WebSecurity.CurrentUserName;
+
+    //for password
+    var oldPassword = "";
+    var newPassword = "";
+    var confirmPassword = "";
+    var emptyStr = ""; //solely used for comparing if you entered nothing
+    var passMatch = "";
+    var passReq1 = "";
+    var passReq2 = "";
+    var success = "";
+
+    //for delete
+    var valiDelete = ""; //checks if user typed "delete"
+    var deleteConf = "";
+    var deleteWord = "delete";
+
+    //change password function
+    if (Request.Form["password"] != null ){
+        oldPassword = Request.Form["oldPass"];
+        newPassword = Request.Form["newPass"];
+        confirmPassword = Request.Form["confirmPassword"];
+
+        //generating fail messages
+        if (String.Equals(oldPassword, emptyStr)){
+            passReq1 = "your old password is required";
+        } else if (String.Equals(newPassword, emptyStr)){
+            passReq2 = "you need a new password to be changed to";
+        } else if (String.Equals(newPassword, confirmPassword)){
+            if (newPassword.Length > 5){
+                WebSecurity.ChangePassword(userName, oldPassword, newPassword);
+                success = "success!";
+            } else {
+                passMatch = "your new password must be at least 6 characters long";
+            }
+        } else {
+            passMatch = "your new passwords don't match. please double check";
+        }
+    }
+
+    //delete function
+    if( Request.Form["delete"] != null){
+        deleteConf = Request.Form["confirm"];
+        if (String.Equals(deleteConf, deleteWord)){
+            //instead of deleting a user, we unauthenticate them, that way the information is saved
+            var db = Database.Open("Users");
+            var updateCommand = "UPDATE webpages_Membership SET IsConfirmed=0 WHERE UserId=@0"; 
+            db.Execute(updateCommand, userId);
+
+            WebSecurity.Logout(); //logs them out as well
+
+            Response.Redirect("~/Account/register"); //returns to register
+        } else {
+            valiDelete = "please type delete to delete your account";
+        }
+    }
+}
+
+<div style="margin-left: 25px; margin-bottom: 1em;">
+    @if (WebSecurity.IsAuthenticated) {
+        @Html.ValidationSummary()
+        <h2>change password</h2>
+            <form method="post" action="" name="changePass">
+                <div class="form-group">
+                    <!--old password box-->
+                        <label for="oldPassword">old password</label> <br />
+                        <input type="password" id="oldPass" name="oldPass" class="form-control" />
+                        <i>@passReq1</i><br />
+
+                    <!--new Password box-->
+                        <label for="newPassword">new password</label> <br />
+                        <input type="password" id="newPass" name="newPass" class="form-control" />
+                        <i>@passReq2</i><br />
+
+                    <!--Confirm Password Box-->
+                        <label for="confirmPassword">confirm password</label> <br />
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" /> 
+                        <i>@passMatch</i><br />
+
+                    <i>@success</i>
+                    <!--Submit-->
+                    <input type="submit" name="password" value="change" class="btn btn-info" />
+                </div>
+            </form>
+
+        <h2>delete account</h2>
+            <form method="post" action="" name="delete">
+                <div class="form-group">
+                    are you sure you want to delete your account, @userName? <br />
+                    if you are, type "delete" below:
+                    <br/>
+                    <input type="text" id="confirm" name="confirm" class="form-control" />
+                    <i>@valiDelete</i><br />
+                    <input type="submit" name="delete" value="delete" class="btn btn-danger" />
+                </div>
+            </form>
+    } else {
+    <p>sorry, you need to <a href="~/Account/login">log in</a> or 
+        <a href="~/Account/register">register</a> to use our services.</p>
+    }
+</div>

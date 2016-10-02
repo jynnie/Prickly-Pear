@@ -1,0 +1,97 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "Garden";
+
+    //displaying goals in a tables
+    var db = Database.Open("Users");
+    var userId = WebSecurity.CurrentUserId;
+    var selectCommand = "SELECT * FROM Goals WHERE UserId =" + userId + "ORDER BY Id" ; //display only data of current user
+    var selectedData = db.Query(selectCommand); //data displayed in grid
+    var grid = new WebGrid(source:selectedData);
+
+    //for garden
+    var garden = db.Query(@"SELECT Id, descriptName, Amount, Notes, Plant FROM Goals WHERE UserId = @0", userId).ToList();
+}
+
+@if (WebSecurity.IsAuthenticated) {
+    <h2>garden</h2>
+    
+    <div class="container">
+        <div class="row">
+            <!--POPULATES THE GARDEN-->
+            @foreach (var item in garden){
+                var path = "/images/cacti/" + @item.Plant + ".png";
+                <div class="col-md-2" style="height: 190px; border-bottom-style:solid; border-bottom-width: 20px; border-bottom-color: #f2ba70;">   
+                    <p style="text-align: center; margin-bottom: 0;">
+                        <input type="image" data-toggle="modal" data-target="#@item.Id" src=@path /></p>
+                </div>
+
+                <!--MODAL INFO FOR EACH-->
+                <div class="modal fade" id="@item.Id" tabindex="-1" role="dialog" aria-labelledby="@item.descriptName">
+                    @{
+                        var selectSum = "SELECT SUM(Amount) FROM Savings WHERE GoalsId =" + item.Id;
+                        decimal total = 0;
+                        try {
+                            total = db.QueryValue(selectSum);
+                        } catch {
+                            total = 0;
+                        }
+
+                        var progress = Math.Round(total/item.Amount*100);
+                        if (progress > 100){
+                            progress = 100;
+                        }
+                    }
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                <h4 class="modal-title" id="@item.descriptName">Info</h4>
+                            </div>
+                            <div class="modal-body" style="text-align: center;">
+                                <img src=@path alt="Cactus"/>   
+                                <h3>@item.descriptName</h3>
+                                <p style="margin-right: 10%; margin-left: 10%">
+                                    $@item.Amount <br />
+                                    @item.Notes
+                                </p>
+                                <div class="progress" style="margin-right: 10%; margin-left: 10%">
+                                    <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar"
+                                    aria-valuenow="@total" aria-valuemin="0" aria-valuemax="@item.Amount"
+                                    style="width: @progress%">
+                                        <div style="text-align: right; margin-right: 5px;">
+                                            @(Math.Round(total/item.Amount*100))%
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                            <div class="modal-footer">
+                                <input type="button" value="info" class="btn btn-info" 
+                                    onClick="window.location.href='/goals/info?id=@item.Id'" />
+                                <input type="button" value="edit" class="btn btn-info" 
+                                    onClick="window.location.href='/goals/edit?id=@item.Id'" />
+                                <input type="button" value="delete" class="btn btn-danger" 
+                                    onClick="window.location.href='/goals/delete?id=@item.Id'" />
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            }
+            <div class="col-md-2" style="height: 190px; border-bottom-style:solid; border-bottom-width: 20px; border-bottom-color: #f2ba70;">
+                <p style="text-align: center; margin-bottom: 0;">
+                    <input type="image" onClick="window.location.href='/goals/create'" src="images/cacti/0.png" />
+                </p>
+            </div>
+        </div>
+    </div>
+} else {
+    <p>
+        grow your savings with us <br />
+        &nbsp; &nbsp; &nbsp; *set saving goals<br />
+        &nbsp; &nbsp; &nbsp; *log savings<br />
+        &nbsp; &nbsp; &nbsp; *track behavior
+    </p>
+}

@@ -1,0 +1,74 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "All Savings";
+
+    //displaying expenses in database
+    var db = Database.Open("Users");
+    var userId = WebSecurity.CurrentUserId;
+
+    //grid data
+    var selectCommand = "SELECT * FROM Savings WHERE UserId = @0";
+    var selectedData = db.Query(selectCommand, userId); //data displayed in grid
+    var grid = new WebGrid(source:selectedData, canPage: true, rowsPerPage: 10);
+
+    //for modal
+    var save = db.Query(@"SELECT Id, descriptName, Date, Amount, Notes, GoalsId FROM Savings WHERE UserId = @0", userId).ToList();
+}
+ 
+
+<h2>all savings</h2>
+
+@if (WebSecurity.IsAuthenticated) {
+    <div id="grid">
+        @grid.GetHtml(
+            columns: grid.Columns(
+                grid.Column("GoalsId", header: "Goal", format: @<p style="margin: 0px;">@db.QueryValue("SELECT descriptName FROM Goals WHERE Id = @0", item.GoalsId)</p>, style: "webWidthNamePad"),
+                grid.Column("descriptName", header:"Name", style: "webWidthName"),
+                grid.Column("Amount", header: "Amount", 
+                            format: @<p style="margin: 0px;">$@item.Amount</p>, style: "amountTable"),
+
+                grid.Column(format: @<p style="margin: 0px;">&nbsp;&nbsp;
+                            <a href="#" style="font-size: 13pt;" data-toggle="modal" data-target="#@item.Id">details</a>
+                            &nbsp;&nbsp;</p>),
+                grid.Column(format: @<p style="margin: 0px;">&nbsp;&nbsp;
+                            <a href="~/savings/edit?id=@item.Id" style="font-size: 13pt;">edit</a>&nbsp;&nbsp;</p>),
+                grid.Column(format: @<p style="margin: 0px;">&nbsp;&nbsp;
+                            <a href="~/savings/delete?id=@item.Id" style="font-size: 13pt;">delete</a>&nbsp;&nbsp;</p>)
+            )
+        )
+    </div>
+
+    foreach(var item in save){
+        <div class="modal fade" id="@item.Id" tabindex="-1" role="dialog" aria-labelledby="@item.descriptName">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title" id="@item.descriptName">Info</h4>
+                    </div>
+                    <div class="modal-body" style="text-align: center;"> 
+                        <h3>@item.descriptName</h3>
+                        <p style="margin-right: 10%; margin-left: 10%">
+                            Saved to: @db.QueryValue("SELECT descriptName FROM Goals WHERE Id = @0", item.GoalsId) <br />
+                            Amount: $@item.Amount <br />
+                            Notes: @item.Notes <br />
+                            Contribution to Goal: @(Math.Round(item.Amount/db.QueryValue("SELECT Amount FROM Goals WHERE Id = @0", item.GoalsId)*100))%
+                            <div class="progress" style="margin-right: 10%; margin-left: 10%">
+                                <div class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar"
+                                aria-valuenow="@item.Amount" aria-valuemin="0" 
+                                aria-valuemax="@db.QueryValue("SELECT Amount FROM Goals WHERE Id = @0", item.GoalsId)"
+                                style="width: @(Math.Round(item.Amount/db.QueryValue("SELECT Amount FROM Goals WHERE Id = @0", item.GoalsId)*100))%">
+                                </div>
+                            </div>
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+} else {
+    <p>sorry, you need to <a href="~/Account/login">log in</a> or <a href="~/Account/register">register</a> to use our services.</p>
+}

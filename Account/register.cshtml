@@ -1,0 +1,88 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "Register";
+
+    //Create general variables to be filled
+    var email ="";
+    var password ="";
+    var confirmPassword ="";
+
+    //Creates required fields
+    Validation.RequireField("email", "you must sign up with a username!");
+    Validation.RequireField("password", "you need a password - how else will you log in later?");
+    Validation.Add("confirmPassword", 
+        Validator.EqualsTo("password", "your password does not match what you've entered. please double check")); 
+        //checks password to second enter
+    Validation.Add("password",
+        Validator.StringLength(
+            maxLength: Int32.MaxValue,
+            minLength: 6,
+            errorMessage: "password must be at least 6 characters long!"));
+
+    //Validates and process entered data
+    if (IsPost) {
+        AntiForgery.Validate();
+        email = Request.Form["email"];
+        password = Request.Form["password"];
+        confirmPassword = Request.Form["confirmPassword"];
+
+        //if valid make new user
+        if (Validation.IsValid()) {
+            //open database
+            var db = Database.Open("Users");
+
+            //check if user already exists
+            var user = db.QuerySingle("SELECT Email FROM UserProfile WHERE LOWER(Email) = LOWER(@0)", email);
+            //creating new user
+            if (user == null) {
+                db.Execute("INSERT INTO UserProfile (Email) VALUES (@0)", email);
+                try{
+                    bool requireEmailConfirmation = ! WebMail.SmtpServer.IsEmpty();
+                    var token = WebSecurity.CreateAccount(email, password, requireEmailConfirmation);
+                    //redirects back to home
+                    WebSecurity.Login(email, password); 
+
+                    Response.Redirect("~/index");
+                }
+                catch (System.Web.Security.MembershipCreateUserException e) {
+                        ModelState.AddFormError(e.Message);
+                    }
+            } 
+            else {
+                    ModelState.AddFormError("Email address is already in use!");
+            }
+        }
+    }
+}
+
+<h2>register</h2>
+
+<!--
+***REGISTER FORM***
+-->
+<form method="post">
+    @AntiForgery.GetHtml()
+    @Html.ValidationSummary("Account creation was unsuccessful. Please correct the errors and try again.", excludeFieldErrors: true, htmlAttributes: null)
+
+    <div class="form-group">
+    <!--Email Box-->
+        <label for="email" @if(!ModelState.IsValidField("email"))
+                           {<text>class="error-label"</text>}>username</label> <br />
+        <input type="text" id="email" name="email" class="form-control" value="@email" @Validation.For("email") />
+        <i>@Html.ValidationMessage("email")</i><br />
+
+    <!--Password Box-->
+        <label for="password" @if(!ModelState.IsValidField("password")) 
+                              {<text>class="error-label"</text>}>password</label> <br />
+        <input type="password" id="password" name="password" class="form-control" value="@password" @Validation.For("password") />
+        <i>@Html.ValidationMessage("password")</i><br />
+
+    <!--Confirm Password Box-->
+        <label for="confirmPassword" @if(!ModelState.IsValidField("confirmPassword")) 
+                                     {<text>class="error-label"</text>}>confirm password</label> <br />
+        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" @Validation.For("confirmPassword") /> 
+        <i>@Html.ValidationMessage("confirmPassword")</i><br />
+
+    <!--Submit-->
+    <input type="submit" value="register" class="btn btn-info" />
+</form>

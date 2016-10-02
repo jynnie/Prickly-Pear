@@ -1,0 +1,98 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "Info";
+
+    var db = Database.Open("Users");
+    var infoId = Request.QueryString["Id"].AsInt(); //passed from main
+    
+    //information on goal
+    var selectPlant = "SELECT Plant FROM Goals WHERE Id = @0";
+    var selectName = "SELECT descriptName FROM Goals WHERE Id = @0";
+    var selectAmount = "SELECT Amount FROM Goals WHERE Id = @0";
+    var selectNotes = "SELECT Notes FROM Goals WHERE Id = @0";
+    var PlantNum = db.QueryValue(selectPlant, infoId);
+    var Name = db.QueryValue(selectName, infoId);
+    decimal Amount = db.QueryValue(selectAmount, infoId);
+    var Notes = db.QueryValue(selectNotes, infoId);
+    var path = "/images/cacti/" + PlantNum + ".png";
+
+    //data of savings in goal
+    var selectCommand = "SELECT * FROM Savings WHERE GoalsId =" + infoId; //display only relevant data
+    var selectedData = db.Query(selectCommand); //data displayed in grid
+    var grid = new WebGrid(source:selectedData);
+    var selectSum = "SELECT SUM(Amount) FROM Savings WHERE GoalsId =" + infoId;
+    decimal total = 0;
+    try {
+        total = db.QueryValue(selectSum);
+    } catch {
+        total = 0;
+    }
+    
+    //checks if you are messing with data that isn't yours
+    var error = false;
+    var userId = WebSecurity.CurrentUserId; //your user id
+    var selectOwnerCommand = "SELECT UserId FROM Goals WHERE Id =" + infoId;
+    var ownerId = db.QueryValue(selectOwnerCommand);
+    if (ownerId != userId) {
+        error = true;
+    }
+}
+
+
+@if (WebSecurity.IsAuthenticated) {
+    if (infoId != 0) {
+        if (error == false) {
+            <div class="row">
+                <div class="col-md-5">
+                    <img src=@path alt="Cactus"/>   
+                    <h2>@Name</h2>
+                    <p style="max-width: 430px;">
+                        $@Amount <br />
+                        @Notes
+                    </p>
+                    <input type="button" value="edit" class="btn btn-info" 
+                        onClick="window.location.href='/goals/edit?id=@infoId'" />
+                    <input type="button" value="delete" class="btn btn-danger" 
+                        onClick="window.location.href='/goals/delete?id=@infoId'" />
+                </div>
+                <div class="col-md-5">
+                    <div id="grid">
+                        <h3>savings progress</h3>
+                        progress: @(Math.Round(total/Amount*100))% 
+                        &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+                        total saved: $@total
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar"
+                            aria-valuenow="@total" aria-valuemin="0" aria-valuemax="@Amount"
+                            style="width: @(Math.Round(total/Amount*100))%">
+                            </div>
+                        </div>
+                        <br/>
+                        <h4 style="font-size: 20pt;">logged savings</h4>
+                        @grid.GetHtml(
+                            columns: grid.Columns(
+                                grid.Column("descriptName", header:"name", style: "webWidthName"),
+                                grid.Column("Amount", header: "amount", 
+                                            format: @<p style="margin: 0px;">$@item.Amount</p>, style: "amountTable")
+                            )
+                        )
+                        <br />
+                        <input type="button" value="log more" class="btn btn-success" 
+                            onClick="window.location.href='/savings/log'" />
+                    </div>
+                </div>
+            </div>
+        }
+    } else {
+        error = true;
+    }
+
+    //if you are in territory not your own
+    if (error == true) {
+        <h2>bzz! error!</h2>
+        <p>it seems you've tried to access information you cannot reach. please try again.</p>
+    }
+} else {
+<p>sorry, you need to <a href="~/Account/login">log in</a> or 
+    <a href="~/Account/register">register</a> to use our services.</p>
+}

@@ -1,0 +1,85 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>Prickly Pear | @Page.Title</title>
+        <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
+        <link href="~/bootstrap/css/bootstrap.css" rel="stylesheet" type="text/css" />
+        <link href="~/style.css" rel="stylesheet" type="text/css" />
+        <link href='https://fonts.googleapis.com/css?family=Quicksand|Open+Sans' rel='stylesheet' type='text/css'>
+    </head>
+    <body>
+        <div id="wrapper">
+            <div class="overlay"></div>
+    
+            <!-- Sidebar -->
+            <nav class="navbar navbar-inverse navbar-fixed-top" id="sidebar-wrapper" role="navigation" style="font-family: Quicksand">
+                <ul class="nav sidebar-nav">
+                    <li class="sidebar-brand">
+                        <a href="#">
+                           prickly pear
+                        </a>
+                    </li>
+                    @if (WebSecurity.IsAuthenticated) {
+                        <li><a href="~/">garden</a></li>
+                        <li><a href="~/goals/create">new savings goal</a></li>
+                        <li><a href="~/savings/log">log saving</a></li>
+                        <li><a href="~/savings/view">savings listing</a></li>
+                        <li><a href="~/about">about</a></li>
+                        <li><a href="~/Account/settings">settings</a></li>
+                        <li>
+                            <form id="logoutForm" action="~/Account/Logout" method="post">
+                                <a href="javascript:document.getElementById('logoutForm').submit()">log out</a>
+                            </form>
+                        </li>
+                    } else {
+                        <li>
+                            <a href="~/Account/register">register</a>
+                        </li>
+                        <li>
+                            <a href="~/Account/login">log in</a>
+                        </li>
+                        <li>
+                            <a href="~/about">about</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        <!-- /#sidebar-wrapper -->
+        <button type="button" class="hamburger is-closed" data-toggle="offcanvas">
+            <span class="hamb-top"></span>
+    		<span class="hamb-middle"></span>
+			<span class="hamb-bottom"></span>
+        </button>
+
+        <!-- Main Content -->
+        <div class="content-wrapper">
+            <div class="container">
+            <header>
+                <h1 style="margin-bottom: 15px;"><a href="~/" style="text-decoration: none; font-size: 36pt;">prickly pear</a></h1>
+            </header>
+            <body>
+                @if (WebSecurity.IsAuthenticated) {
+                    //determines if shows functions depending on if logged in
+                    <p>
+                        hello, @WebSecurity.CurrentUserName!
+                    </p>                
+                }
+                @RenderBody()
+                <br />
+            </body>
+            <footer>
+                <p style="font-size: 10pt;">&copy; 2016 PRO. All rights reserved.</p>
+            </footer>
+            </div>
+        </div>
+            <script src="~/jquery-2.2.1.js"></script>
+            <script src="~/bootstrap/js/bootstrap.min.js"></script>
+            <script src="~/custom.js"></script>
+        </div>
+    </body>
+</html>

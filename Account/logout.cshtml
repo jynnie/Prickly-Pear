@@ -1,0 +1,12 @@
+﻿@{
+    WebSecurity.RequireAuthenticatedUser();
+
+    if (IsPost) {
+        //AntiForgery.Validate();
+
+        WebSecurity.Logout();
+
+        Response.Redirect("~/");
+    }
+    
+}

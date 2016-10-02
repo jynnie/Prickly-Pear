@@ -1,0 +1,68 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "Delete Budget";
+
+    var db = Database.Open("Users");
+    var infoId = Request.QueryString["Id"].AsInt(); //passed from main
+
+    //information on goal
+    var selectPlant = "SELECT Plant FROM Goals WHERE Id = @0";
+    var selectName = "SELECT descriptName FROM Goals WHERE Id = @0";
+    var selectAmount = "SELECT Amount FROM Goals WHERE Id = @0";
+    var selectNotes = "SELECT Notes FROM Goals WHERE Id = @0";
+    var PlantNum = db.QueryValue(selectPlant, infoId);
+    var Name = db.QueryValue(selectName, infoId);
+    decimal Amount = db.QueryValue(selectAmount, infoId);
+    var Notes = db.QueryValue(selectNotes, infoId);
+    var path = "/images/cacti/" + PlantNum + ".png";
+
+    //checks if you are messing with data that isn't yours
+    var error = false;
+    var userId = WebSecurity.CurrentUserId; //your user id
+    var selectOwnerCommand = "SELECT UserId FROM Goals WHERE Id =" + infoId;
+    var ownerId = db.QueryValue(selectOwnerCommand);
+    if (ownerId != userId) {
+        error = true;
+    }
+
+    //delete function
+    if (IsPost && error==false){
+        var deleteBudgetCommand = "DELETE FROM Goals WHERE Id =@0";
+        db.Execute(deleteBudgetCommand, infoId);
+        Response.Redirect("~/");
+    }
+}
+
+
+@if (WebSecurity.IsAuthenticated) {
+    @Html.ValidationSummary();
+    if (infoId != 0) {
+        if (error == false) { 
+            <h2>delete goal</h2>
+            <form method="post" action="" name="form">
+                <img src=@path alt="Cactus"/>
+                <p>
+                    are you sure you want to delete @Name? <br />
+                    $@Amount <br />
+                    @Notes
+                </p>
+                <p><input type="submit" value="delete" class="btn btn-danger" />
+                    <input type="button" value="cancel" class="btn btn-default" 
+                        onClick="window.location.href='/'" />
+                </p>
+            </form>
+        }
+    } else {
+        error = true;
+    }
+        
+    //if you are in territory not your own
+    if (error == true) {
+        <h2>bzz! error!</h2>
+        <p>l00ks like y0u tr1ed t0 access s0mething that e1ther 1sn't y0urs 0r d0esn't ex1st. 
+            welc0me to the uncharted pla1ns - get 0ut</p>
+    }
+} else {
+<p>sorry, you need to <a href="~/Account/login">log in</a> or 
+    <a href="~/Account/register">register</a> to use our services.</p>
+}

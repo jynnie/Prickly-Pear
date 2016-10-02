@@ -1,0 +1,97 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "Create New Goal";
+
+    //variables to be logged into the database
+    var db = Database.Open("Users");
+    var userId = WebSecurity.CurrentUserId;
+    var descriptName = "";
+    decimal amount = 0;
+    var notes = "";
+    var plant = 1; //default plant
+
+    //possible error strings
+    var nameErr = "";
+    var amountErr = "";
+
+    //fetch from form
+    if (IsPost) {
+        AntiForgery.Validate();
+        descriptName = Request.Form["name"];
+        amount = Request.Form["amount"].AsDecimal();
+        notes = Request.Form["notes"];
+        plant = Request.Form["plant"].AsInt();
+
+        if (descriptName == ""){
+            nameErr = "a name is required";
+        } else if (amount == 0){
+            amountErr = "an amount is required";
+        } else{
+            var createGoal = "INSERT INTO Goals (UserId, descriptName, Amount, Notes, Plant) VALUES (@0, @1, @2, @3, @4)";
+            db.Execute(createGoal, userId, descriptName, amount, notes, plant);
+
+            Response.Redirect("~/index");
+        }     
+    }
+}
+
+
+@if (WebSecurity.IsAuthenticated) {
+    <h2>create a new savings goal</h2>
+    <form method="post">
+        @AntiForgery.GetHtml()
+
+        <div class="form-group">
+            <!--plant choose-->
+            <label class="plantChoose"> 
+                <input type="radio" name="plant" value="1" checked>
+                <img src="~/images/cacti/1.png" alt="Default Cactus">
+            </label>
+            <label class="plantChoose">
+                <input type="radio" name="plant" value="2">
+                <img src="~/images/cacti/2.png" alt="Teacup Cactus">
+            </label>
+            <label class="plantChoose">
+                <input type="radio" name="plant" value="3">
+                <img src="~/images/cacti/3.png" alt="Glass Cactus">
+            </label>
+            <label class="plantChoose">
+                <input type="radio" name="plant" value="4">
+                <img src="~/images/cacti/4.png" alt="Twin Cacti">
+            </label>
+            <label class="plantChoose">
+                <input type="radio" name="plant" value="5">
+                <img src="~/images/cacti/5.png" alt="Waving Cacti">
+            </label>
+            <label class="plantChoose">
+                <input type="radio" name="plant" value="6">
+                <img src="~/images/cacti/6.png" alt="Modern Cacti">
+            </label>
+            <label class="plantChoose">
+                <input type="radio" name="plant" value="7">
+                <img src="~/images/cacti/7.png" alt="Tin Girl Cacti">
+            </label>
+            <br />
+
+            <!--name box-->
+            <label for="name">name</label><br/>
+            <input type="text" id="name" name="name" maxlength="50" value="@descriptName" class="form-control" placeholder="name of new goal" />
+            <i>@nameErr</i> <br />
+
+            <!--budget box-->
+            <label for="amount">amount to save</label><br/>
+            <input type="text" id="amount" name="amount" value="@amount" class="form-control" placeholder="$-.--" />
+            <i>@amountErr</i><br />
+
+            <!--notes box-->
+            <label for="notes">notes</label><br/>
+            <textarea id="notes" name="notes" rows="3" class="form-control" maxlength="500" placeholder="your notes and thoughts">@notes</textarea>
+            <br />
+
+            <!--Submit-->
+            <input type="submit" value="create" class="btn btn-info" />
+        </div>
+    </form>
+} else {
+    <p>sorry, you need to <a href="~/Account/login">log in</a> or <a href="~/Account/register">register</a> to use our services.</p>
+}

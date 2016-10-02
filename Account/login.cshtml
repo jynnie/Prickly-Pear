@@ -1,0 +1,75 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "log in";
+
+    var email = "";
+    var password = "";
+    var rememberMe = false;
+
+    var returnUrl = Href("~/");
+
+    //Setup validation
+    Validation.RequireField("email", "we need your email address you registered with to log in");
+    Validation.RequireField("password", "you need your password in order to log in");
+    Validation.Add("password",
+        Validator.StringLength(
+            maxLength: Int32.MaxValue,
+            minLength: 6,
+            errorMessage: "password should be at least 6 characters"
+        )
+    );
+    
+    //handling the login form
+    if (IsPost) {
+        AntiForgery.Validate();
+
+        //get info from forms
+        email = Request.Form["email"];
+        password = Request.Form["password"];
+        rememberMe = Request.Form["rememberMe"].AsBool();
+
+        if (Validation.IsValid()){
+            if (WebSecurity.Login(email, password, rememberMe)) {
+                Context.RedirectLocal(returnUrl);
+                return;            
+            } else {
+                ModelState.AddFormError("the user name or password you gave is incorrect.");
+            }
+        }
+    }
+}
+
+<h2>log in</h2>
+<form method="post">
+    @AntiForgery.GetHtml()
+    <i style="font-size: 15pt;">@Html.ValidationSummary("log in was unsuccessful - please try again", excludeFieldErrors: true, htmlAttributes: null)</i>
+        
+    <div class="form-group">
+        <!--username box-->
+        <label for="email" @if (!ModelState.IsValidField("email"))
+                                       {<text>class="error-label"</text>}>username</label>
+        <br />
+        <input type="text" id="email" name="email" class="form-control" value="@email" @Validation.For("email")/>
+        <i>@Html.ValidationMessage("email")</i><br />
+
+        <!--password box-->
+        <label for="password" @if (!ModelState.IsValidField("password")) {<text>class="error-label"</text>}>password</label>
+        <br />
+        <input type="password" id="password" name="password" class="form-control" @Validation.For("password")/>
+        <i>@Html.ValidationMessage("password")</i><br />
+
+        <!--remember me option-->
+        <div class="checkbox">
+            <label>
+                <input type="checkbox" id="rememberMe" name="rememberMe" value="true" /> 
+                remember me
+            </label>
+        </div>
+        
+        <input type="submit" value="log in" class="btn btn-info" />
+    </div>
+</form>
+
+<p>
+    <a href="~/Account/Register">do you have an account?</a>
+</p>

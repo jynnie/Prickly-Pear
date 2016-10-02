@@ -1,0 +1,130 @@
+﻿@{
+    Layout = "~/_sitelayout.cshtml";
+    Page.Title = "Edit Goal";
+
+    var db = Database.Open("Users");
+    var infoId = Request.QueryString["Id"].AsInt(); //passed from main
+    
+    //variables to edit
+    var selectPlant = "SELECT Plant FROM Goals WHERE Id = @0";
+    var selectName = "SELECT descriptName FROM Goals WHERE Id = @0";
+    var selectAmount = "SELECT Amount FROM Goals WHERE Id = @0";
+    var selectNotes = "SELECT Notes FROM Goals WHERE Id = @0";
+    var PlantNum = db.QueryValue(selectPlant, infoId);
+    var Name = db.QueryValue(selectName, infoId);
+    decimal Amount = db.QueryValue(selectAmount, infoId);
+    var Notes = db.QueryValue(selectNotes, infoId);
+    var path = "/images/cacti/" + PlantNum + ".png";
+
+    //possible error strings
+    var nameErr = "";
+    var amountErr = "";
+    
+    //checks if you are messing with data that isn't yours
+    var error = false;
+    var userId = WebSecurity.CurrentUserId; //your user id
+    var selectOwnerCommand = "SELECT UserId FROM Goals WHERE Id =" + infoId;
+    var ownerId = db.QueryValue(selectOwnerCommand);
+    if (ownerId != userId) {
+        error = true;
+    }
+
+    //edit function
+    if (IsPost) {
+        AntiForgery.Validate();
+        Name = Request.Form["name"];
+        Amount = Request.Form["amount"].AsDecimal();
+        Notes = Request.Form["notes"];
+        PlantNum = Request.Form["plant"].AsInt();
+
+        
+        if (Validation.IsValid()){
+            if (Name == ""){
+                nameErr = "a name is required";
+            } else if (Amount == 0){
+                amountErr = "an amount is required";
+            } else{
+            var updateCommand = "UPDATE Goals SET descriptName=@0, Amount=@1, Notes=@2, Plant=@3 WHERE Id=@4";
+            db.Execute(updateCommand, Name, Amount, Notes, PlantNum, infoId);
+
+            Response.Redirect("~/");
+            }
+        }
+    }
+}
+
+
+@if (WebSecurity.IsAuthenticated) {
+    if (infoId != 0) {
+        if (error == false) {   
+            <h2>edit for @Name</h2>
+            <form method="post">
+                @AntiForgery.GetHtml()
+
+                <div class="form-group">
+                    <!--plant choose-->
+                    <label class="plantChoose"> 
+                        <input type="radio" name="plant" value="1" @(PlantNum == 1   ? "checked" : "")>
+                        <img src="~/images/cacti/1.png" alt="Default Cactus">
+                    </label>
+                    <label class="plantChoose">
+                        <input type="radio" name="plant" value="2" @(PlantNum == 2   ? "checked" : "")>
+                        <img src="~/images/cacti/2.png" alt="Teacup Cactus">
+                    </label>
+                    <label class="plantChoose">
+                        <input type="radio" name="plant" value="3" @(PlantNum == 3   ? "checked" : "")>
+                        <img src="~/images/cacti/3.png" alt="Glass Cactus">
+                    </label>
+                    <label class="plantChoose">
+                        <input type="radio" name="plant" value="4" @(PlantNum == 4   ? "checked" : "")>
+                        <img src="~/images/cacti/4.png" alt="Twin Cacti">
+                    </label>
+                    <label class="plantChoose">
+                        <input type="radio" name="plant" value="5" @(PlantNum == 5   ? "checked" : "")>
+                        <img src="~/images/cacti/5.png" alt="Waving Cacti">
+                    </label>
+                    <label class="plantChoose">
+                        <input type="radio" name="plant" value="6" @(PlantNum == 6   ? "checked" : "")>
+                        <img src="~/images/cacti/6.png" alt="Modern Cacti">
+                    </label>
+                    <label class="plantChoose">
+                        <input type="radio" name="plant" value="7" @(PlantNum == 7   ? "checked" : "")>
+                        <img src="~/images/cacti/7.png" alt="Tin Girl Cacti">
+                    </label>
+                    <br /> 
+
+                    <!--name box-->
+                    <label for="name">name</label><br/>
+                    <input type="text" id="name" name="name" maxlength="50" value="@Name" class="form-control" placeholder="name of new goal" />
+                    <i>@nameErr</i> <br />
+
+                    <!--budget box-->
+                    <label for="amount">amount to save</label><br/>
+                    <input type="text" id="amount" name="amount" value="@Amount" 
+                        placeholder="$-.--"  class="form-control" />
+                    <i>@amountErr</i> <br />
+
+                    <!--notes box-->
+                    <label for="notes">notes</label><br/>
+                    <textarea id="notes" name="notes" rows="3" class="form-control" 
+                        maxlength="500" placeholder="your notes and thoughts">@Notes</textarea>
+                    <br />
+
+                    <!--Submit-->
+                    <input type="submit" value="update" class="btn btn-info" />
+                </div>
+            </form>
+        }
+    } else {
+        error = true;
+    }
+
+    //if you are in territory not your own
+    if (error == true) {
+        <h2>bzz! error!</h2>
+        <p>it seems you've tried to access information you cannot reach. please try again.</p>
+    }
+} else {
+<p>sorry, you need to <a href="~/Account/login">log in</a> or 
+    <a href="~/Account/register">register</a> to use our services.</p>
+}
